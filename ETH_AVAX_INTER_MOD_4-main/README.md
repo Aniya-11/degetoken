@@ -24,7 +24,7 @@ Ensure you have the following installed on your system:
 
 1. Clone the forked repository to your local machine:
     ```bash
-    git clone https://github.com/NICxKMS/ETH_AVAX_INTER_MOD_4.git
+
     cd ETH_AVAX_INTER_MOD_4
     ```
 2. Install the project dependencies:
@@ -135,12 +135,9 @@ Ensure you have the following installed on your system:
 For detailed debugging and assistance, refer to the Remix documentation or community forums.
 
 ## Authors
-- **Nikhil Kumar**
-  - GitHub: [NICxKMS](https://github.com/NICxKMS)
-  - Twitter: [@Nikhil](https://twitter.com/yourusername)  <!-- Update with your actual Twitter handle if available -->
+-Aniya kumari aniyakuamri096@gmail.com
+9350132454
 
-## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## Conclusion
 
