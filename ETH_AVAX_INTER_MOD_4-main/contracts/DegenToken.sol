@@ -1,98 +1,82 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
-
-// Minting new tokens: The platform should be able to create new tokens and distribute them to players as rewards. Only the owner can mint tokens.
-// Transferring tokens: Players should be able to transfer their tokens to others.
-// Redeeming tokens: Players should be able to redeem their tokens for items in the in-game store.
-// Checking token balance: Players should be able to check their token balance at any time.
-// Burning tokens: Anyone should be able to burn tokens, that they own, that are no longer needed.
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DegenToken is ERC20, Ownable {
-    address[] private tokenHolders;
-    mapping(address => string[]) private itemsRedeemed;
-    string[] public redeemableItems;
+contract DegenToken is ERC20, Ownable(msg.sender) {
+  constructor() ERC20("Degen", "DGN") {}
 
-    
-    constructor()
-        ERC20("Degen", "DGN")
-{       redeemableItems.push("Choose Number respectively starting form 1 "); 
-        redeemableItems.push("Silver Loot Box");
-        redeemableItems.push("Gold Loot Box");
-        redeemableItems.push("Platinum Loot Box");
-        }
+  // Store item structure
+  struct StoreItem {
+    string itemName;
+    uint256 price;
+  }
 
-    function decimals() public view virtual override returns (uint8) {
-        return 0;
-    }
+  // Store items list
+  StoreItem[] public storeItems;
 
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
-        
-    }
+  // Mapping for user experience (UX) points
+  mapping(address => uint256) public xp;
 
-    function getItemNames() public view returns (string[] memory) {
-        return redeemableItems;
-    }
+  // Add store items (onlyOwner)
+  function addStoreItem(string memory itemName, uint256 price) external onlyOwner {
+    storeItems.push(StoreItem(itemName, price));
+  }
 
-    function rewardPlayer(address receiver,uint256 amount) public {
-        transfer(receiver,amount);
-    }
+  // Earn XP for playing games ( onlyOwner can set rewards )
+  function awardXP(address player, uint256 amount) public onlyOwner {
+    xp[player] += amount;
+  }
 
-    function burn(uint256 amount) public {
-        _burn(msg.sender, amount);
-    }
+  // Modifier to restrict functions to players with enough XP
+  modifier requiresXP(uint256 minXP) {
+    require(xp[msg.sender] >= minXP, "Not enough XP to perform this action");
+    _;
+  }
 
-    function redeem(uint256 action) public {
-        if (action == 1) {
-            require(
-                balanceOf(msg.sender) >= 20,
-                "Insufficient balance to redeem Sakura"
-            );
-            _burn(msg.sender, 20);
-            itemsRedeemed[msg.sender].push(redeemableItems[1]);
-        } else if (action == 2) {
-            require(
-                balanceOf(msg.sender) >= 50,
-                "Insufficient balance to redeem Hinata"
-            );
-            _burn(msg.sender, 50);
-            itemsRedeemed[msg.sender].push(redeemableItems[2]);
-        } else if (action == 3) {
-            require(
-                balanceOf(msg.sender) >= 100,
-                "Insufficient balance to redeem Hinata"
-            );
-            _burn(msg.sender, 100);
-            itemsRedeemed[msg.sender].push(redeemableItems[3]);
-        } else {
-            revert("Invalid action");
-        }
-    }
+  // Mint tokens based on XP (requiresXP)
+  function mintForXP(uint256 amount) public requiresXP(amount * 10) {
+    _mint(msg.sender, amount);
+  }
 
-    function checkBalance(address account) public view returns (uint256) {
-        return balanceOf(account);
-    }
+  // Mint new tokens and distribute them to players as rewards. Only the owner can do this.
+  function mint(address to, uint256 amount) public onlyOwner {
+    _mint(to, amount);
+  }
 
-    function getTokenHolders() public view returns (address[] memory) {
-        return tokenHolders;
-    }
+  // Transfer tokens from the sender's account to another account.
+  function transferTokens(address to, uint256 amount) external {
+    require(balanceOf(msg.sender) >= amount, "Don't have enough Degen Tokens");
+    _transfer(msg.sender, to, amount);
+  }
 
-    function getRedeemedItems(address account)
-        public
-        view
-        returns (string[] memory)
-    {
-        return itemsRedeemed[account];
-    }
+  // Redeem tokens for items in the in-game store based on the store item index.
+  event RedeemItem(address indexed player, string itemName, uint256 price);
 
-    function transfer(address recipient, uint256 amount) public override returns (bool)
-    {
-        bool success = super.transfer(recipient, amount);
-       
-        return success;
-    }
+  function redeem(uint256 itemIndex) public virtual {
+    require(itemIndex < storeItems.length, "Invalid store item index");
+    uint256 price = storeItems[itemIndex].price;
+    require(balanceOf(msg.sender) >= price, "Not enough Degen Tokens to redeem this item");
 
+    _burn(msg.sender, price);
+    emit RedeemItem(msg.sender, storeItems[itemIndex].itemName, price);
+  }
+
+  // Anyone can burn their own tokens that are no longer needed.
+  function burn(uint256 amount) public virtual {
+    _burn(msg.sender, amount);
+  }
+}
+
+contract StoreInitializer {
+  // Deploy the DegenToken contract and add examples to storeItems
+  constructor() {
+    DegenToken token = new DegenToken();
+
+    // Add examples to storeItems
+    token.addStoreItem("Epic Sword of Valor", 100);
+    token.addStoreItem("Mystic Potion of Power", 50);
+    token.addStoreItem("Legendary Shield of Fortitude", 200);
+  }
 }
